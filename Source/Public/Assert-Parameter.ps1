@@ -7,6 +7,8 @@ function Assert-Parameter {
 
         [string[]]$ParameterSet,
 
+        [string[]]$Alias,
+
         [Parameter()]
         [Type]$Type,
 
@@ -16,6 +18,9 @@ function Assert-Parameter {
     $script:AllTestedParameters += $Name
 
     $Text = "Has a$(if($Mandatory){" mandatory"}elseif($PSBoundParameters.ContainsKey("Mandatory")){"n optional"}) parameter $Name"
+    if ($Alias) {
+        $Text += " (with alias$(if($Alias.Count -gt 1){"es"}) '$($Alias -join "', '")')"
+    }
     if ($Type) {
         $Text += " of type [$Type]"
     }
@@ -28,6 +33,12 @@ function Assert-Parameter {
     It $Text {
         $script:Parameters.Name | Should -Contain $Name
         $Parameter = $script:Parameters | Where-Object { $_.Name -eq $Name }
+
+        if ($Alias) {
+            $Parameter.Aliases -notmatch '\*$' | Sort-Object -Unique | Should -Be ($Alias | Sort-Object -Unique)
+        } elseif ($PSBoundParameters.ContainsKey("Alias")) {
+            $Parameter.Aliases | Should -BeNullOrEmpty
+        }
 
         if ($Mandatory) {
             $Parameter.Mandatory | ForEach-Object { $_ | Should -Be $True }
